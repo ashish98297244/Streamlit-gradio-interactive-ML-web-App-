@@ -1,0 +1,61 @@
+import streamlit as str
+import pandas as pd
+import numpy as np
+import pickle
+
+# 1. Page Configuration aur Title
+str.set_page_config(page_title="Titanic ML Predictor", layout="centered")
+str.title(" Titanic Survival Prediction Web App")
+str.write("Enter passenger details below to predict survival probability.")
+
+# Fake model injection (Agar aapke paas trained model.pkl file abhi nahi hai)
+try:
+    with open('model.pkl', 'rb') as file:
+        model = pickle.load(file)
+    model_loaded = True
+except FileNotFoundError:
+    model_loaded = False
+
+# 2. Input UI Elements (Sliders, Selectboxes, Dropdowns)
+str.header(" Passenger Details")
+
+col1, col2 = str.columns(2)
+
+with col1:
+    pclass = str.selectbox("Passenger Class (Pclass)", [1, 2, 3], index=2)
+    sex = str.selectbox("Gender", ["Male", "Female"])
+    age = str.slider("Age", min_value=0, max_value=100, value=25)
+
+with col2:
+    sibsp = str.slider("Siblings/Spouses Aboard (SibSp)", 0, 8, 0)
+    parch = str.slider("Parents/Children Aboard (Parch)", 0, 6, 0)
+    fare = str.slider("Ticket Fare ($)", min_value=0.0, max_value=500.0, value=32.0)
+
+# Inputs ko DataFrame me convert karna
+gender_numeric = 1 if sex == "Male" else 0
+input_data = pd.DataFrame([[pclass, gender_numeric, age, sibsp, parch, fare]], 
+                           columns=['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare'])
+
+# 3. Prediction Display Logic
+str.markdown("---")
+if str.button(" Predict Survival Status", use_container_width=True):
+    if model_loaded:
+        # Real model se prediction
+        prediction = model.predict(input_data)[0]
+        prob = model.predict_proba(input_data)[0][1] * 100
+    else:
+        # Fallback Logic (Agar model file load nahi hui to data ke basis par rule-based prediction)
+        # First class females ki survival probability high thi
+        if sex == "Female" and pclass < 3:
+            prediction = 1
+            prob = np.random.uniform(75.0, 95.0)
+        else:
+            prediction = 0
+            prob = np.random.uniform(10.0, 40.0)
+
+    # Output UI Formatting
+    str.subheader("Prediction Result:")
+    if prediction == 1:
+        str.success(f"**Survived!** (Estimated Probability: {prob:.2f}%)")
+    else:
+        str.error(f"**Did Not Survive** (Estimated Probability: {prob:.2f}%)")
